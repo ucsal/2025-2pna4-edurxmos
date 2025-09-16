@@ -1,4 +1,3 @@
-
 package br.com.mariojp.figureeditor;
 
 import javax.swing.*;
@@ -12,13 +11,14 @@ import java.util.List;
 
 class DrawingPanel extends JPanel {
 
-    private static final long serialVersionUID = 1L;
     private static final int DEFAULT_SIZE = 60;
-    private final List<Shape> shapes = new ArrayList<>();
+    private final List<ColoredShape> shapes = new ArrayList<>();
+
     private Point startDrag = null;
+    private ShapeType currentShape = ShapeType.CIRCLE;
+    private Color currentColor = new Color(30,144,255);
 
     DrawingPanel() {
-        
         setBackground(Color.WHITE);
         setOpaque(true);
         setDoubleBuffered(true);
@@ -26,17 +26,22 @@ class DrawingPanel extends JPanel {
         var mouse = new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1 && startDrag == null) {
-                    int size = Math.max(Math.min(DEFAULT_SIZE, DEFAULT_SIZE), 10);
-                    Shape s =  new Ellipse2D.Double(e.getPoint().x, e.getPoint().y, size, size);
-                    //return new Rectangle2D.Double(e.getPoint().x, e.getPoint().y, Math.max(DEFAULT_SIZE, 10), Math.max(DEFAULT_SIZE, 10));
-                    shapes.add(s);
+                    int size = Math.max(DEFAULT_SIZE, 10);
+                    Shape s = createShape(e.getPoint(), size);
+                    shapes.add(new ColoredShape(s, currentColor));
                     repaint();
                 }
             }
         };
-        addMouseListener(mouse);        
+        addMouseListener(mouse);
         addMouseMotionListener(mouse);
+    }
 
+    private Shape createShape(Point p, int size) {
+        return switch (currentShape) {
+            case CIRCLE -> new Ellipse2D.Double(p.x, p.y, size, size);
+            case RECTANGLE -> new Rectangle2D.Double(p.x, p.y, size, size);
+        };
     }
 
     void clear() {
@@ -44,20 +49,33 @@ class DrawingPanel extends JPanel {
         repaint();
     }
 
+    public void setCurrentShape(ShapeType shape) {
+        this.currentShape = shape;
+    }
+
+    public void setCurrentColor(Color color) {
+        this.currentColor = color;
+    }
+
+    public Color getCurrentColor() {
+        return currentColor;
+    }
+
     @Override protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        for (Shape s : shapes) {
-            g2.setColor(new Color(30,144,255));
-            g2.fill(s);
+        for (ColoredShape cs : shapes) {
+            g2.setColor(cs.color());
+            g2.fill(cs.shape());
             g2.setColor(new Color(0,0,0,70));
             g2.setStroke(new BasicStroke(1.2f));
-            g2.draw(s);
+            g2.draw(cs.shape());
         }
 
         g2.dispose();
     }
 
+    private record ColoredShape(Shape shape, Color color) {}
 }
